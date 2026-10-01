@@ -1,0 +1,47 @@
+name: Update Seogeumsa Cafe Monitor
+
+on:
+  schedule:
+    # UTC 기준. 매시간 17분에 실행하여 정각 혼잡을 피합니다.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seogeumsa-monitor
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch latest Naver Cafe articles
+        run: python monitor.py
+
+      - name: Commit README when changed
+        run: |
+          if git diff --quiet README.md; then
+            echo "README has not changed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Update Seogeumsa A cafe articles"
+          git push
