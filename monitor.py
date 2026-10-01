@@ -1,6 +1,5 @@
 import html
 import re
-from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import requests
@@ -60,40 +59,34 @@ def article_url(article_id: int) -> str:
 
 
 def build_section(articles) -> str:
-    kst = timezone(timedelta(hours=9))
-    checked_at = datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S KST")
-
     lines = [
-        f"마지막 확인: **{checked_at}**",
-        "",
-        "| Article ID | 작성일 | 제목 | 댓글 | 조회 |",
-        "|---:|---|---|---:|---:|",
+        "| Article ID | 작성일 | 제목 |",
+        "|---:|---|---|",
     ]
 
     for article in articles:
         article_id = article["articleId"]
-        title = clean_title(article.get("subject", ""))
-        # Markdown 표가 깨지지 않도록 처리
-        title = title.replace("|", "\\|")
+        title = clean_title(article.get("subject", "")).replace("|", "\\|")
         added = article.get("addDate", "").replace("T", " ")[:16]
-        comments = article.get("commentCount", 0)
-        views = article.get("readCount", 0)
         url = article_url(article_id)
-        lines.append(
-            f"| {article_id} | {added} | [{title}]({url}) | {comments} | {views} |"
-        )
+        lines.append(f"| {article_id} | {added} | [{title}]({url}) |")
 
     return "\n".join(lines)
 
 
-def update_readme(section: str):
+def update_readme(section: str) -> bool:
     text = README.read_text(encoding="utf-8")
 
     if START_MARKER not in text or END_MARKER not in text:
         raise RuntimeError("README markers are missing")
 
     before, rest = text.split(START_MARKER, 1)
-    _, after = rest.split(END_MARKER, 1)
+    current_section, after = rest.split(END_MARKER, 1)
+
+    # 공백 차이를 제외하고 게시글 목록 자체가 같으면 README를 건드리지 않습니다.
+    if current_section.strip() == section.strip():
+        print("Article list unchanged. README will not be modified.")
+        return False
 
     updated = (
         before
@@ -104,8 +97,9 @@ def update_readme(section: str):
         + END_MARKER
         + after
     )
-
     README.write_text(updated, encoding="utf-8")
+    print("Article list changed. README updated.")
+    return True
 
 
 def main():
