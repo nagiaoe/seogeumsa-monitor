@@ -2,8 +2,9 @@ name: Update Seogeumsa Cafe Monitor
 
 on:
   schedule:
-    # UTC 기준. 매시간 17분에 실행하여 정각 혼잡을 피합니다.
-    - cron: "17 * * * *"
+    # UTC 기준. 6시간마다 17분에 실행합니다.
+    # 한국시간(KST): 03:17, 09:17, 15:17, 21:17
+    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 permissions:
